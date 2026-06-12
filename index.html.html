@@ -1123,7 +1123,8 @@ function buildPlayerDropdown(id,matchId,placeholder,currentVal){
     }
   }
   if(!hasAny)opts+='<div class="player-option" style="color:var(--muted);cursor:default;font-size:11px">Trupp ej inlagd</div>';
-  return'<div class="player-select-wrap"><input class="player-search" id="'+id+'" placeholder="'+placeholder+'" value="'+(currentVal||'')+'" oninput="filterDropdown(\''+id+'\')" onfocus="openDropdown(\''+id+'\')" onblur="closeDropdownDelayed(\''+id+'\')" autocomplete="off"><div class="player-dropdown" id="dd-'+id+'">'+opts+'</div></div>';
+  const displayVal=currentVal==='__ingen__'?'❌ Ingen målskytt':currentVal||'';
+  return'<div class="player-select-wrap"><input class="player-search" id="'+id+'" placeholder="'+placeholder+'" value="'+displayVal+'" oninput="filterDropdown(\''+id+'\')" onfocus="openDropdown(\''+id+'\')" onblur="closeDropdownDelayed(\''+id+'\')" autocomplete="off"><div class="player-dropdown" id="dd-'+id+'">'+opts+'</div></div>';
 }
 function openDropdown(id){const el=document.getElementById('dd-'+id);if(el)el.classList.add('open');}
 function closeDropdownDelayed(id){setTimeout(()=>{const el=document.getElementById('dd-'+id);if(el)el.classList.remove('open');},200);}
@@ -1135,7 +1136,7 @@ function filterDropdown(id){
   dd.querySelectorAll('.player-group-label').forEach(lbl=>{let sib=lbl.nextElementSibling,show=false;while(sib&&!sib.classList.contains('player-group-label')){if(sib.style.display!=='none')show=true;sib=sib.nextElementSibling;}lbl.style.display=show?'':'none';});
   dd.classList.add('open');
 }
-function selectPlayer(id,name){const inp=document.getElementById(id);if(inp)inp.value=name;const dd=document.getElementById('dd-'+id);if(dd)dd.classList.remove('open');}
+function selectPlayer(id,name){const inp=document.getElementById(id);if(inp)inp.value=name==='__ingen__'?'❌ Ingen målskytt':name;inp.dataset.value=name;const dd=document.getElementById('dd-'+id);if(dd)dd.classList.remove('open');}
 
 // ── ACTIONS ──
 function toggleBooster(mid,type){
@@ -1173,7 +1174,7 @@ async function saveTip(mid){
   const h=document.getElementById('h-'+mid),a=document.getElementById('a-'+mid);
   const sc=document.getElementById('sc-'+mid),ft=document.getElementById('ft-'+mid);
   const booster=(tips[mid]||{})[u]&&(tips[mid]||{})[u].booster||null;
-  const{error}=await sb.from('tips').upsert({match_id:mid,user_id:u,home_score:h&&h.value!==''?parseInt(h.value):null,away_score:a&&a.value!==''?parseInt(a.value):null,scorer:sc?sc.value||null:null,first_team:ft?ft.value||null:null,mom:null,booster},{onConflict:'match_id,user_id'});
+  const{error}=await sb.from('tips').upsert({match_id:mid,user_id:u,home_score:h&&h.value!==''?parseInt(h.value):null,away_score:a&&a.value!==''?parseInt(a.value):null,scorer:sc?(sc.dataset.value||sc.value)||null:null,first_team:ft?ft.value||null:null,mom:null,booster},{onConflict:'match_id,user_id'});
   if(!error){await loadTips();const el=document.getElementById('saved-'+mid);if(el){el.style.display='block';setTimeout(()=>el.style.display='none',2500);}refreshMainLB();}
 }
 async function savePreBasic(){
