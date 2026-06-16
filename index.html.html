@@ -696,7 +696,10 @@ function renderStages(){
   html+=ranking.map((r,idx)=>{
     const ptsColor=stageOngoing?'var(--gold)':'var(--accent)';
     const tb=r.outcomes>0?' · '+r.outcomes+' rätt utfall · '+r.exact+' exakta':'';
-    return`<div class="lb-row" style="cursor:pointer" onclick="openStagePlayerModal('${r.uid}','${stage}')"><div class="lb-rank ${rnk[idx]||''}">${medals[idx]||r.rank}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${USERS[r.uid].name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${r.pts} pts${tb}</div></div><div style="text-align:right"><div style="font-family:var(--font-display,'Bebas Neue'),sans-serif;font-size:28px;color:${ptsColor}">${r.pts}</div><div style="font-size:10px;color:var(--muted)">${stageOngoing?'⏱ live':isFinalized?'✓ final':'pts'}</div></div></div>`;
+    const stageMs=matches.filter(m=>m.stage===stage&&m.result);
+    const usedX2=stageMs.some(m=>(tips[m.id]||{})[r.uid]&&(tips[m.id]||{})[r.uid].booster==='x2');
+    const usedGoal=stageMs.some(m=>(tips[m.id]||{})[r.uid]&&(tips[m.id]||{})[r.uid].booster==='goal');
+    return`<div class="lb-row" style="cursor:pointer" onclick="openStagePlayerModal('${r.uid}','${stage}')"><div class="lb-rank ${rnk[idx]||''}">${medals[idx]||r.rank}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${USERS[r.uid].name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${r.pts} pts${tb}</div><div style="margin-top:4px;display:flex;gap:4px">${usedX2?'<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#1a1200;color:var(--gold)">⚡ 2X</span>':''}${usedGoal?'<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#0a1a0a;color:var(--accent)">⚽ Goal</span>':''}</div></div><div style="text-align:right"><div style="font-family:var(--font-display,'Bebas Neue'),sans-serif;font-size:28px;color:${ptsColor}">${r.pts}</div><div style="font-size:10px;color:var(--muted)">${stageOngoing?'⏱ live':isFinalized?'✓ final':'pts'}</div></div></div>`;
   }).join('');
   html+='</div>';
   // Matches
@@ -932,23 +935,28 @@ function openStagePlayerModal(uid,stage){
     html+='<div style="color:var(--muted);border-top:1px solid var(--border);padding-top:6px">Totalt</div><div style="font-weight:700;color:var(--gold);border-top:1px solid var(--border);padding-top:6px">'+total+'p</div>';
     html+='</div>';
   } else {
-    let outcomeP=0,homeGoalP=0,awayGoalP=0,diffP=0,scorerP=0,firstTeamP=0,underdogP=0,boosterP=0;
+    let outcomeP=0,homeGoalP=0,awayGoalP=0,diffP=0,scorerP=0,firstTeamP=0,underdogP=0,x2P=0,goalP=0;
     for(const m of stageMatches){
       const t=(tips[m.id]||{})[uid];if(!t)continue;
       const pts=calcMatchPoints(m,t,tips[m.id]||{});
-      for(const b of pts.bd||[]){
-        const n=parseInt((b.match(/\d+/)||['0'])[0]);
-        if(b.startsWith('Rätt utfall'))outcomeP+=n;
-        else if(b.startsWith('Hemmamål'))homeGoalP+=n;
-        else if(b.startsWith('Bortamål'))awayGoalP+=n;
-        else if(b.startsWith('Målskillnad'))diffP+=n;
-        else if(b.startsWith('Målskytt'))scorerP+=n;
-        else if(b.startsWith('Första lag'))firstTeamP+=n;
-        else if(b.startsWith('Underdog'))underdogP+=n;
-        else boosterP+=n;
+      const bd=pts.bd||[];
+      // Calculate base points before booster
+      let base=0;
+      for(const b of bd){
+        const n=parseInt((b.match(/\d+/)||['0'])[0])||0;
+        if(b.startsWith('Rätt utfall')){outcomeP+=n;base+=n;}
+        else if(b.startsWith('Hemmamål')){homeGoalP+=n;base+=n;}
+        else if(b.startsWith('Bortamål')){awayGoalP+=n;base+=n;}
+        else if(b.startsWith('Målskillnad')){diffP+=n;base+=n;}
+        else if(b.startsWith('Målskytt')){scorerP+=n;base+=n;}
+        else if(b.startsWith('Första lag')){firstTeamP+=n;base+=n;}
+        else if(b.startsWith('Underdog')){underdogP+=n;base+=n;}
       }
+      // Booster adds on top
+      if(t.booster==='x2')x2P+=base; // 2X doubles base, so extra = base
+      if(t.booster==='goal'){const[rh,ra]=(m.result||'0-0').split('-').map(Number);goalP+=(rh+ra);}
     }
-    const total=outcomeP+homeGoalP+awayGoalP+diffP+scorerP+firstTeamP+underdogP+boosterP;
+    const total=outcomeP+homeGoalP+awayGoalP+diffP+scorerP+firstTeamP+underdogP+x2P+goalP;
     html+='<div style="display:grid;grid-template-columns:1fr auto;gap:7px 20px;font-size:13px">';
     html+='<div style="color:var(--muted)">Rätt utfall (1X2)</div><div style="font-weight:600">'+outcomeP+'p</div>';
     html+='<div style="color:var(--muted)">Hemmamål</div><div style="font-weight:600">'+homeGoalP+'p</div>';
@@ -957,7 +965,8 @@ function openStagePlayerModal(uid,stage){
     html+='<div style="color:var(--muted)">Målskytt</div><div style="font-weight:600">'+scorerP+'p</div>';
     html+='<div style="color:var(--muted)">Första lag</div><div style="font-weight:600">'+firstTeamP+'p</div>';
     if(underdogP>0)html+='<div style="color:var(--gold)">Underdog-bonus</div><div style="font-weight:600;color:var(--gold)">'+underdogP+'p</div>';
-    if(boosterP>0)html+='<div style="color:var(--gold)">Booster</div><div style="font-weight:600;color:var(--gold)">'+boosterP+'p</div>';
+    if(x2P>0)html+='<div style="color:var(--gold)">⚡ 2X Booster</div><div style="font-weight:600;color:var(--gold)">+'+x2P+'p</div>';
+    if(goalP>0)html+='<div style="color:var(--gold)">⚽ Goal Booster</div><div style="font-weight:600;color:var(--gold)">+'+goalP+'p</div>';
     html+='<div style="border-top:1px solid var(--border);padding-top:6px;font-weight:600;color:var(--muted)">Totalt</div><div style="font-weight:700;color:var(--accent);font-size:16px;border-top:1px solid var(--border);padding-top:6px">'+total+'p</div>';
     html+='</div>';
   }
@@ -1039,8 +1048,8 @@ function renderTipForm(){
         </select>
       </div>
       <div class="booster-row">
-        <button class="booster-btn b-x2 ${saved.booster==='x2'?'active':''}" ${canX2?'':'disabled'} onclick="toggleBooster('${m.id}','x2')">⚡ 2X${x2U&&saved.booster!=='x2'?' ✓':''}</button>
-        <button class="booster-btn b-goal ${saved.booster==='goal'?'active':''}" ${canGoal?'':'disabled'} onclick="toggleBooster('${m.id}','goal')">⚽ Goal${goalU&&saved.booster!=='goal'?' ✓':''}</button>
+        <button class="booster-btn b-x2 ${saved.booster==='x2'?'active':''}" ${canX2?'':'disabled'} onclick="toggleBooster('${m.id}','x2')">⚡ 2X${x2U&&saved.booster!=='x2'&&m.result?' ✓':''}</button>
+        <button class="booster-btn b-goal ${saved.booster==='goal'?'active':''}" ${canGoal?'':'disabled'} onclick="toggleBooster('${m.id}','goal')">⚽ Goal${goalU&&saved.booster!=='goal'&&m.result?' ✓':''}</button>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Max 1 av varje booster per stage</div>
       <button class="save-btn" onclick="saveTip('${m.id}')">Spara tips</button>
