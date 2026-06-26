@@ -552,6 +552,10 @@ function getTournamentBonus(uid){
   const pt=preTips[uid]||{};let pts=0;
   if(pt.winner&&settings.winner&&pt.winner.toLowerCase()===settings.winner.toLowerCase())pts+=PTS.WINNER;
   if(pt.topscorer&&settings.topscorer&&pt.topscorer.toLowerCase()===settings.topscorer.toLowerCase())pts+=PTS.TOPSCORER;
+  return pts;
+}
+function getGroupPlacementPoints(uid){
+  const pt=preTips[uid]||{};let pts=0;
   const ag=settings.groups||{};
   for(const grp of Object.keys(GROUPS)){
     const actual=ag[grp]||[],tipped=(pt.groups||{})[grp]||[];
@@ -566,7 +570,7 @@ function applySharedRanking(sorted){
   while(i<sorted.length){
     let j=i;while(j<sorted.length&&sorted[j].pts===sorted[i].pts)j++;
     const bonus=Array.from({length:j-i},(_,k)=>RANK_BONUS[i+k]||0).reduce((a,b)=>a+b,0)/(j-i);
-    for(let k=i;k<j;k++)result.push({uid:sorted[k].uid,pts:sorted[k].pts,rank:i+1,bonus});
+    for(let k=i;k<j;k++)result.push({uid:sorted[k].uid,pts:sorted[k].pts,rank:i+1,bonus,outcomes:sorted[k].outcomes||0,exact:sorted[k].exact||0,pos1:sorted[k].pos1||0,pos2:sorted[k].pos2||0,pos3:sorted[k].pos3||0,pos4:sorted[k].pos4||0});
     i=j;
   }
   return result;
@@ -617,7 +621,7 @@ function getStageRanking(stage){
   }
   const scored=pl.map(u=>({
     uid:u,
-    pts:stage==='pre'?getTournamentBonus(u):getStageMatchPointsWithLive(u,stage),
+    pts:stage==='pre'?getGroupPlacementPoints(u):getStageMatchPointsWithLive(u,stage),
     outcomes:stage==='pre'?0:countStageOutcomes(u,stage),
     exact:stage==='pre'?0:countStageExact(u,stage),
     pos1:stage==='pre'?countCorrectAtPosition(u,0):0,
@@ -673,9 +677,8 @@ function renderMainLeaderboard(){
   let html='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Stage-ranking (1a=5p, 2a=4p...) + turneringsbonus</div>';
   html+=ranked.map((r,i)=>{
     const stBd=STAGES.filter(s=>stagePoints[s]&&stagePoints[s][r.uid]).map(s=>STAGE_LABELS[s].split(' ')[0]+': +'+stagePoints[s][r.uid]).join(' · ');
-    const tB=r.tournBonus>0?' · Turnering: +'+r.tournBonus:'';
-    const tbInfo=r.outcomes>0?' · '+r.outcomes+' rätt utfall · '+r.exact+' exakta':'';
-    return`<div class="lb-row"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${stBd||'Inga avklarade stages'}${tB}${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
+    const tbInfo=r.outcomes>0?r.outcomes+' rätt utfall · '+r.exact+' exakta':'';
+    return`<div class="lb-row"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
   }).join('');
   return html;
 }
