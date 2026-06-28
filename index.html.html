@@ -861,7 +861,7 @@ function renderGroupStandings(){
 // ── MATCH MODAL ──
 function openMatchModal(mid){
   const m=matches.find(x=>x.id===mid);if(!m)return;
-  const now=new Date(),dl=new Date(m.deadline),isPre=now<dl,isDone=!!m.result;
+  const now=new Date(),dl=new Date(m.deadline.replace(' ','T')+'Z'),isPre=now<dl,isDone=!!m.result;
   const hasLive=!isDone&&m.live_score;
   const pl=Object.keys(USERS).filter(u=>!USERS[u].isAdmin);
   let html='<div class="modal-title">'+m.home+' – '+m.away+'</div>';
