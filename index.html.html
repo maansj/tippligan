@@ -1179,7 +1179,7 @@ async function saveTip(mid){
   const u=currentUser;if(!u)return;
   // Check deadline
   const m=matches.find(x=>x.id===mid);
-  if(!m||new Date()>=new Date(m.deadline)){
+  if(!m||new Date()>=new Date(m.deadline.replace(' ','T')+'Z')){
     alert('⛔ Deadline har passerat! Tips kan inte sparas.');
     return;
   }
