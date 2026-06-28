@@ -1380,10 +1380,51 @@ async function adminClearLive(mid){
   await sb.from('matches').update({live_score:null,live_scorer:null,live_first_team:null}).eq('id',mid);
   await loadMatches();refreshCurrentPage();
 }
+async function updateNextRound(mid, winner) {
+  // Full bracket: R32->R16->QF->SF->Final
+  const bracket = {
+    // R32 -> R16
+    "r32_01":["r16_01","home"], "r32_04":["r16_01","away"],
+    "r32_03":["r16_02","home"], "r32_06":["r16_02","away"],
+    "r32_02":["r16_03","home"], "r32_05":["r16_03","away"],
+    "r32_07":["r16_04","home"], "r32_09":["r16_04","away"],
+    "r32_10":["r16_05","home"], "r32_13":["r16_05","away"],
+    "r32_11":["r16_06","home"], "r32_12":["r16_06","away"],
+    "r32_08":["r16_07","home"], "r32_16":["r16_07","away"],
+    "r32_14":["r16_08","home"], "r32_15":["r16_08","away"],
+    // R16 -> QF
+    "r16_01":["qf_01","home"], "r16_02":["qf_01","away"],
+    "r16_03":["qf_02","home"], "r16_04":["qf_02","away"],
+    "r16_05":["qf_03","home"], "r16_06":["qf_03","away"],
+    "r16_07":["qf_04","home"], "r16_08":["qf_04","away"],
+    // QF -> SF
+    "qf_01":["sf_01","home"], "qf_02":["sf_01","away"],
+    "qf_03":["sf_02","home"], "qf_04":["sf_02","away"],
+    // SF -> Final
+    "sf_01":["fin","home"], "sf_02":["fin","away"],
+  };
+  if(!bracket[mid]) return;
+  const [nextId, side] = bracket[mid];
+  const update = side==='home' ? {home: winner} : {away: winner};
+  await sb.from('matches').update(update).eq('id', nextId);
+  await loadMatches();
+  refreshAll();
+}
 async function adminSetResult(mid){
   const r=document.getElementById('res-'+mid),ps=document.getElementById('psc-'+mid),pf=document.getElementById('pft-'+mid);
-  await sb.from('matches').update({result:r?r.value||null:null,live_score:null,live_scorer:null,live_first_team:null,pot_scorer:ps?ps.value||null:null,pot_first_team:pf?pf.value||null:null,pot_mom:null}).eq('id',mid);
-  await loadMatches();refreshAll();
+  const res=r?r.value||null:null;
+  await sb.from('matches').update({result:res,live_score:null,live_scorer:null,live_first_team:null,pot_scorer:ps?ps.value||null:null,pot_first_team:pf?pf.value||null:null,pot_mom:null}).eq('id',mid);
+  await loadMatches();
+  // Auto-update next round with winner
+  if(res&&(mid.startsWith('r32_')||mid.startsWith('r16_')||mid.startsWith('qf_')||mid.startsWith('sf_'))){
+    const m=matches.find(x=>x.id===mid);
+    if(m){
+      const[rh,ra]=res.split('-').map(Number);
+      const winner=rh>=ra?m.home:m.away;
+      await updateNextRound(mid,winner);
+    }
+  }
+  refreshAll();
 }
 async function adminClearResult(mid){
   await sb.from('matches').update({result:null,live_score:null,live_scorer:null,live_first_team:null,pot_scorer:null,pot_first_team:null,pot_mom:null}).eq('id',mid);
@@ -1604,19 +1645,13 @@ document.getElementById('matchModal').addEventListener('click',function(e){if(e.
 document.getElementById('playerModal').addEventListener('click',function(e){if(e.target===this)closePlayerModal();});
 function toSthlm(dtStr){
   if(!dtStr)return'–';
-  // Handle various formats: "2026-06-11 19:00:00", "2026-06-11T19:00:00", "2026-06-11T19:00:00+00:00"
-  let s=dtStr.trim();
-  // If already has timezone info, use as-is
-  if(s.includes('+') || s.endsWith('Z')){
-    const d=new Date(s);
-    if(isNaN(d))return dtStr;
-    return d.toLocaleString('sv-SE',{timeZone:'Europe/Stockholm',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
-  }
-  // No timezone - treat as UTC
-  s=s.replace(' ','T');
-  if(!s.endsWith('Z'))s+='Z';
+  // Normalize: replace space with T, ensure UTC marker
+  let s=dtStr.trim().replace(' ','T');
+  // Remove timezone suffix like +00, +00:00, +0000 and treat as UTC
+  s=s.replace(/[+-]\d{2}:?\d{0,2}$/, '').replace(/Z$/,'');
+  s+='Z'; // always treat as UTC
   const d=new Date(s);
-  if(isNaN(d))return dtStr;
+  if(isNaN(d.getTime()))return dtStr;
   return d.toLocaleString('sv-SE',{timeZone:'Europe/Stockholm',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
 }
 function updateClock(){
