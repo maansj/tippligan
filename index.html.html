@@ -861,7 +861,7 @@ function renderGroupStandings(){
 // ── MATCH MODAL ──
 function openMatchModal(mid){
   const m=matches.find(x=>x.id===mid);if(!m)return;
-  const now=new Date(),dl=new Date(m.deadline.replace(' ','T')+'Z'),isPre=now<dl,isDone=!!m.result;
+  const now=new Date(),dl=new Date(m.deadline.replace(' ','T')),isPre=now<dl,isDone=!!m.result;
   const hasLive=!isDone&&m.live_score;
   const pl=Object.keys(USERS).filter(u=>!USERS[u].isAdmin);
   let html='<div class="modal-title">'+m.home+' – '+m.away+'</div>';
@@ -1179,7 +1179,7 @@ async function saveTip(mid){
   const u=currentUser;if(!u)return;
   // Check deadline
   const m=matches.find(x=>x.id===mid);
-  if(!m||new Date()>=new Date(m.deadline.replace(' ','T')+'Z')){
+  if(!m||new Date()>=new Date(m.deadline.replace(' ','T'))){
     alert('⛔ Deadline har passerat! Tips kan inte sparas.');
     return;
   }
@@ -1645,14 +1645,11 @@ document.getElementById('matchModal').addEventListener('click',function(e){if(e.
 document.getElementById('playerModal').addEventListener('click',function(e){if(e.target===this)closePlayerModal();});
 function toSthlm(dtStr){
   if(!dtStr)return'–';
-  // Normalize: replace space with T, ensure UTC marker
-  let s=dtStr.trim().replace(' ','T');
-  // Remove timezone suffix like +00, +00:00, +0000 and treat as UTC
-  s=s.replace(/[+-]\d{2}:?\d{0,2}$/, '').replace(/Z$/,'');
-  s+='Z'; // always treat as UTC
-  const d=new Date(s);
-  if(isNaN(d.getTime()))return dtStr;
-  return d.toLocaleString('sv-SE',{timeZone:'Europe/Stockholm',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
+  // DB stores Stockholm time directly - just format it
+  const s=dtStr.trim();
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if(!m)return dtStr;
+  return m[3]+'/'+m[2]+' '+m[4]+':'+m[5];
 }
 function updateClock(){
   const now=new Date();
