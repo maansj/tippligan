@@ -643,6 +643,27 @@ function getStageRanking(stage){
 }
 
 // ── RENDER: MAIN LEADERBOARD ──
+function getLiveMainLeaderboardPoints(uid){
+  // Same as getMainLeaderboardPoints but also includes:
+  // 1. Bonus from stages that are NOT yet finalized, using CURRENT live ranking
+  // 2. Live match points within ongoing matchday/knockout stages
+  let tot=getTournamentBonus(uid);
+  for(const s of STAGES){
+    if(stagePoints[s]&&stagePoints[s][uid]){
+      // Already finalized - use locked-in bonus
+      tot+=stagePoints[s][uid];
+    } else {
+      // Not finalized - simulate current standing bonus
+      const hasAnyData=s==='pre'?Object.keys(preTips).length>0:matches.some(m=>m.stage===s&&(m.result||m.live_score));
+      if(hasAnyData){
+        const liveRanking=getStageRanking(s);
+        const myRow=liveRanking.find(r=>r.uid===uid);
+        if(myRow)tot+=myRow.bonus;
+      }
+    }
+  }
+  return tot;
+}
 function renderMainLeaderboard(){
   const pl=Object.keys(USERS).filter(u=>!USERS[u].isAdmin);
   function countCorrectOutcomes(uid){
@@ -668,18 +689,42 @@ function renderMainLeaderboard(){
       return th===rh&&ta===ra;
     }).length;
   }
-  const ranked=pl.map(u=>({uid:u,name:USERS[u].name,mainPts:getMainLeaderboardPoints(u),tournBonus:getTournamentBonus(u),outcomes:countCorrectOutcomes(u),exact:countExactResults(u)})).sort((a,b)=>{
+  // Check if anything is currently live (ongoing match in any non-finalized stage)
+  const anyLive=STAGES.some(s=>!stagePoints[s]&&matches.some(m=>m.stage===s&&!m.result&&m.live_score));
+  const anyUnfinalizedWithData=STAGES.some(s=>{
+    if(stagePoints[s])return false;
+    if(s==='pre')return Object.keys(preTips).length>0;
+    return matches.some(m=>m.stage===s&&(m.result||m.live_score));
+  });
+
+  const ranked=pl.map(u=>({uid:u,name:USERS[u].name,mainPts:getMainLeaderboardPoints(u),livePts:getLiveMainLeaderboardPoints(u),tournBonus:getTournamentBonus(u),outcomes:countCorrectOutcomes(u),exact:countExactResults(u)})).sort((a,b)=>{
     if(b.mainPts!==a.mainPts)return b.mainPts-a.mainPts;
     if(b.outcomes!==a.outcomes)return b.outcomes-a.outcomes;
     return b.exact-a.exact;
   });
   const medals=['🥇','🥈','🥉'],rnk=['gold','silver','bronze'];
+
   let html='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Stage-ranking (1a=5p, 2a=4p...) + turneringsbonus</div>';
   html+=ranked.map((r,i)=>{
-    const stBd=STAGES.filter(s=>stagePoints[s]&&stagePoints[s][r.uid]).map(s=>STAGE_LABELS[s].split(' ')[0]+': +'+stagePoints[s][r.uid]).join(' · ');
     const tbInfo=r.outcomes>0?r.outcomes+' rätt utfall · '+r.exact+' exakta':'';
-    return`<div class="lb-row"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
+    return `<div class="lb-row"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
   }).join('');
+
+  // Live table - only show if there's ongoing/unfinalized data
+  if(anyUnfinalizedWithData){
+    const liveRanked=[...ranked].sort((a,b)=>b.livePts-a.livePts);
+    html+='<div style="margin-top:24px;display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+    html+='<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:1px;color:var(--gold)">⏱ LIVE-STÄLLNING</div>';
+    if(anyLive)html+='<span style="font-size:10px;background:var(--gold);color:#000;padding:2px 8px;border-radius:10px;font-weight:700">PÅGÅR</span>';
+    html+='</div>';
+    html+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Om nuvarande resultat och ställningar låses just nu</div>';
+    html+=liveRanked.map((r,i)=>{
+      const diff=r.livePts-r.mainPts;
+      const diffStr=diff!==0?' <span style="color:'+(diff>0?'var(--accent)':'var(--red)')+';font-size:11px">('+(diff>0?'+':'')+diff+')</span>':'';
+      return `<div class="lb-row" style="border-color:rgba(255,200,0,0.25)"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div></div><div style="text-align:right"><span class="lb-pts" style="color:var(--gold)">${r.livePts}</span><span style="font-size:11px;color:var(--muted)"> pts</span>${diffStr}</div></div>`;
+    }).join('');
+  }
+
   return html;
 }
 
