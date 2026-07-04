@@ -227,7 +227,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="stab-g2" onclick="setStage('g2',this)">Matchday 2</button>
   <button class="stage-tab" id="stab-g3" onclick="setStage('g3',this)">Matchday 3</button>
   <button class="stage-tab" id="stab-r32" onclick="setStage('r32',this)">R32</button>
-  <button class="stage-tab locked" id="stab-r16">R16 🔒</button>
+  <button class="stage-tab" id="stab-r16" onclick="setStage('r16',this)">R16</button>
   <button class="stage-tab locked" id="stab-qf">Kvart 🔒</button>
   <button class="stage-tab locked" id="stab-sf">Semi 🔒</button>
   <button class="stage-tab locked" id="stab-final">Final 🔒</button>
@@ -247,7 +247,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="tstab-g2" onclick="setTipStage('g2',this)">Matchday 2</button>
   <button class="stage-tab" id="tstab-g3" onclick="setTipStage('g3',this)">Matchday 3</button>
   <button class="stage-tab" id="tstab-r32" onclick="setTipStage('r32',this)">R32</button>
-  <button class="stage-tab locked" id="tstab-r16">R16 🔒</button>
+  <button class="stage-tab" id="tstab-r16" onclick="setTipStage('r16',this)">R16</button>
   <button class="stage-tab locked" id="tstab-qf">Kvart 🔒</button>
   <button class="stage-tab locked" id="tstab-sf">Semi 🔒</button>
   <button class="stage-tab locked" id="tstab-final">Final 🔒</button>
@@ -268,7 +268,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="stage-tab" id="astab-g3" onclick="setAdminStage('g3',this)">Matchday 3</button>
     <button class="stage-tab" id="astab-groups" onclick="setAdminStage('groups',this)">📊 Grupper</button>
     <button class="stage-tab" id="astab-r32" onclick="setAdminStage('r32',this)">R32</button>
-    <button class="stage-tab locked" id="astab-r16">R16 🔒</button>
+    <button class="stage-tab" id="astab-r16" onclick="setAdminStage('r16',this)">R16</button>
     <button class="stage-tab locked" id="astab-qf">Kvart 🔒</button>
     <button class="stage-tab locked" id="astab-sf">Semi 🔒</button>
     <button class="stage-tab locked" id="astab-final">Final 🔒</button>
@@ -1428,26 +1428,26 @@ async function adminClearLive(mid){
 async function updateNextRound(mid, winner) {
   // Full bracket: R32->R16->QF->SF->Final
   const bracket = {
-    // R32 -> R16
+    // R32 -> R16 (official 2026 bracket)
     "r32_01":["r16_01","home"], "r32_04":["r16_01","away"],
-    "r32_03":["r16_02","home"], "r32_06":["r16_02","away"],
+    "r32_06":["r16_02","home"], "r32_03":["r16_02","away"],
     "r32_02":["r16_03","home"], "r32_05":["r16_03","away"],
-    "r32_07":["r16_04","home"], "r32_09":["r16_04","away"],
-    "r32_10":["r16_05","home"], "r32_13":["r16_05","away"],
-    "r32_11":["r16_06","home"], "r32_12":["r16_06","away"],
-    "r32_08":["r16_07","home"], "r32_16":["r16_07","away"],
-    "r32_14":["r16_08","home"], "r32_15":["r16_08","away"],
+    "r32_07":["r16_04","home"], "r32_08":["r16_04","away"],
+    "r32_16":["r16_05","home"], "r32_12":["r16_05","away"],
+    "r32_09":["r16_06","home"], "r32_10":["r16_06","away"],
+    "r32_11":["r16_07","home"], "r32_14":["r16_07","away"],
+    "r32_13":["r16_08","home"], "r32_15":["r16_08","away"],
     // R16 -> QF
-    "r16_01":["qf_01","home"], "r16_02":["qf_01","away"],
-    "r16_03":["qf_02","home"], "r16_04":["qf_02","away"],
-    "r16_05":["qf_03","home"], "r16_06":["qf_03","away"],
+    "r16_02":["qf_01","home"], "r16_01":["qf_01","away"],
+    "r16_05":["qf_02","home"], "r16_06":["qf_02","away"],
+    "r16_03":["qf_03","home"], "r16_04":["qf_03","away"],
     "r16_07":["qf_04","home"], "r16_08":["qf_04","away"],
     // QF -> SF
     "qf_01":["sf_01","home"], "qf_02":["sf_01","away"],
     "qf_03":["sf_02","home"], "qf_04":["sf_02","away"],
     // SF -> Final
     "sf_01":["fin","home"], "sf_02":["fin","away"],
-  };
+  }
   if(!bracket[mid]) return;
   const [nextId, side] = bracket[mid];
   const update = side==='home' ? {home: winner} : {away: winner};
