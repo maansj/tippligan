@@ -707,7 +707,7 @@ function renderMainLeaderboard(){
   let html='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Stage-ranking (1a=5p, 2a=4p...) + turneringsbonus</div>';
   html+=ranked.map((r,i)=>{
     const tbInfo=r.outcomes>0?r.outcomes+' rätt utfall · '+r.exact+' exakta':'';
-    return `<div class="lb-row"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
+    return `<div class="lb-row" style="cursor:pointer" onclick="openMainPlayerModal('${r.uid}')"><div class="lb-rank ${rnk[i]||''}">${medals[i]||i+1}</div><div style="flex:1"><div style="font-weight:500;font-size:14px">${r.name} <span style="font-size:10px;color:var(--muted)">→</span></div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tbInfo}</div></div><div style="text-align:right"><span class="lb-pts">${r.mainPts}</span><span style="font-size:11px;color:var(--muted)"> pts</span></div></div>`;
   }).join('');
 
   // Live table - only show if there's ongoing/unfinalized data
@@ -952,6 +952,86 @@ function openMatchModal(mid){
     }
     html+='</div>';
   }
+  document.getElementById('matchModalContent').innerHTML=html;
+  document.getElementById('matchModal').classList.add('show');
+}
+function getMatchPointsNoBooster(m,uid){
+  // Returns base match points (excluding boosters) for a player on a match
+  const t=(tips[m.id]||{})[uid];
+  if(!t||!m.result)return 0;
+  const pts=calcMatchPoints(m,t,tips[m.id]||{});
+  return pts.total; // calcMatchPoints doesn't include boosters
+}
+function openMainPlayerModal(uid){
+  const name=USERS[uid].name;
+  let html='<div class="modal-title">'+name+'</div>';
+  html+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Poängfördelning · alla stages</div>';
+
+  // Aggregate points per category across ALL match stages (excl boosters)
+  let outcomeP=0,homeGoalP=0,awayGoalP=0,diffP=0,scorerP=0,firstTeamP=0,underdogP=0;
+  const perCountry={}; // country -> points (no booster)
+
+  for(const m of matches){
+    if(!m.result)continue;
+    if(m.stage==='pre')continue;
+    const t=(tips[m.id]||{})[uid];
+    if(!t)continue;
+    const pts=calcMatchPoints(m,t,tips[m.id]||{});
+    let matchTotal=0;
+    for(const b of pts.bd||[]){
+      const n=parseInt((b.match(/\d+/)||['0'])[0])||0;
+      if(b.startsWith('Rätt utfall')){outcomeP+=n;matchTotal+=n;}
+      else if(b.startsWith('Hemmamål')){homeGoalP+=n;matchTotal+=n;}
+      else if(b.startsWith('Bortamål')){awayGoalP+=n;matchTotal+=n;}
+      else if(b.startsWith('Målskillnad')){diffP+=n;matchTotal+=n;}
+      else if(b.startsWith('Målskytt')){scorerP+=n;matchTotal+=n;}
+      else if(b.startsWith('Första lag')){firstTeamP+=n;matchTotal+=n;}
+      else if(b.startsWith('Underdog')){underdogP+=n;matchTotal+=n;}
+    }
+    // Attribute match points to both countries in the match
+    const homeC=stripFlag(m.home), awayC=stripFlag(m.away);
+    perCountry[homeC]=(perCountry[homeC]||0)+matchTotal;
+    perCountry[awayC]=(perCountry[awayC]||0)+matchTotal;
+  }
+
+  const total=outcomeP+homeGoalP+awayGoalP+diffP+scorerP+firstTeamP+underdogP;
+
+  // Category breakdown
+  html+='<div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Poäng per kategori</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr auto;gap:7px 20px;font-size:13px;margin-bottom:18px">';
+  html+='<div style="color:var(--muted)">Rätt utfall (1X2)</div><div style="font-weight:600">'+outcomeP+'p</div>';
+  html+='<div style="color:var(--muted)">Hemmamål</div><div style="font-weight:600">'+homeGoalP+'p</div>';
+  html+='<div style="color:var(--muted)">Bortamål</div><div style="font-weight:600">'+awayGoalP+'p</div>';
+  html+='<div style="color:var(--muted)">Målskillnad</div><div style="font-weight:600">'+diffP+'p</div>';
+  html+='<div style="color:var(--muted)">Målskytt</div><div style="font-weight:600">'+scorerP+'p</div>';
+  html+='<div style="color:var(--muted)">Första lag</div><div style="font-weight:600">'+firstTeamP+'p</div>';
+  if(underdogP>0)html+='<div style="color:var(--gold)">Underdog-bonus</div><div style="font-weight:600;color:var(--gold)">'+underdogP+'p</div>';
+  html+='<div style="border-top:1px solid var(--border);padding-top:6px;font-weight:600;color:var(--muted)">Totalt (exkl booster)</div><div style="font-weight:700;color:var(--accent);font-size:16px;border-top:1px solid var(--border);padding-top:6px">'+total+'p</div>';
+  html+='</div>';
+
+  // Top 3 / Flop 3 countries
+  const countryArr=Object.entries(perCountry).sort((a,b)=>b[1]-a[1]);
+  if(countryArr.length>0){
+    const top3=countryArr.slice(0,3);
+    const flop3=countryArr.slice(-3).reverse();
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    // Top 3
+    html+='<div>';
+    html+='<div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔥 Topp 3 lag</div>';
+    for(const[c,p] of top3){
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+c+'</span><span style="font-weight:700;color:var(--accent)">'+p+'p</span></div>';
+    }
+    html+='</div>';
+    // Flop 3
+    html+='<div>';
+    html+='<div style="font-size:12px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">❄️ Flopp 3 lag</div>';
+    for(const[c,p] of flop3){
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+c+'</span><span style="font-weight:700;color:var(--red)">'+p+'p</span></div>';
+    }
+    html+='</div>';
+    html+='</div>';
+  }
+
   document.getElementById('matchModalContent').innerHTML=html;
   document.getElementById('matchModal').classList.add('show');
 }
