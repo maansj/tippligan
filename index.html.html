@@ -228,7 +228,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="stab-g3" onclick="setStage('g3',this)">Matchday 3</button>
   <button class="stage-tab" id="stab-r32" onclick="setStage('r32',this)">R32</button>
   <button class="stage-tab" id="stab-r16" onclick="setStage('r16',this)">R16</button>
-  <button class="stage-tab locked" id="stab-qf">Kvart 🔒</button>
+  <button class="stage-tab" id="stab-qf" onclick="setStage('qf',this)">Kvart</button>
   <button class="stage-tab locked" id="stab-sf">Semi 🔒</button>
   <button class="stage-tab locked" id="stab-final">Final 🔒</button>
 </div>
@@ -248,7 +248,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="tstab-g3" onclick="setTipStage('g3',this)">Matchday 3</button>
   <button class="stage-tab" id="tstab-r32" onclick="setTipStage('r32',this)">R32</button>
   <button class="stage-tab" id="tstab-r16" onclick="setTipStage('r16',this)">R16</button>
-  <button class="stage-tab locked" id="tstab-qf">Kvart 🔒</button>
+  <button class="stage-tab" id="tstab-qf" onclick="setTipStage('qf',this)">Kvart</button>
   <button class="stage-tab locked" id="tstab-sf">Semi 🔒</button>
   <button class="stage-tab locked" id="tstab-final">Final 🔒</button>
 </div>
@@ -269,7 +269,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="stage-tab" id="astab-groups" onclick="setAdminStage('groups',this)">📊 Grupper</button>
     <button class="stage-tab" id="astab-r32" onclick="setAdminStage('r32',this)">R32</button>
     <button class="stage-tab" id="astab-r16" onclick="setAdminStage('r16',this)">R16</button>
-    <button class="stage-tab locked" id="astab-qf">Kvart 🔒</button>
+    <button class="stage-tab" id="astab-qf" onclick="setAdminStage('qf',this)">Kvart</button>
     <button class="stage-tab locked" id="astab-sf">Semi 🔒</button>
     <button class="stage-tab locked" id="astab-final">Final 🔒</button>
     <button class="stage-tab" id="astab-settings" onclick="setAdminStage('settings',this)">⚙️ Inställningar</button>
@@ -391,10 +391,10 @@ const ALL_MATCHES=[
 {id:'r16_06',stage:'r16',home:'Vinnare Belgien/Senegal',away:'Vinnare USA/Bosnien',dl:'2026-07-07 02:00'},
 {id:'r16_07',stage:'r16',home:'Vinnare Australien/Egypten',away:'Vinnare Argentina/Kap Verde',dl:'2026-07-07 18:00'},
 {id:'r16_08',stage:'r16',home:'Vinnare Schweiz/Algeriet',away:'Vinnare Colombia/Ghana',dl:'2026-07-07 22:00'},
-{id:'qf1',stage:'qf',home:'R16 V1',away:'R16 V2',dl:'2026-07-09 22:00'},
-{id:'qf2',stage:'qf',home:'R16 V3',away:'R16 V4',dl:'2026-07-10 02:00'},
-{id:'qf3',stage:'qf',home:'R16 V5',away:'R16 V6',dl:'2026-07-10 22:00'},
-{id:'qf4',stage:'qf',home:'R16 V7',away:'R16 V8',dl:'2026-07-11 02:00'},
+{id:'qf_01',stage:'qf',home:'🇫🇷 Frankrike',away:'🇲🇦 Marocko',dl:'2026-07-09 22:00'},
+{id:'qf_02',stage:'qf',home:'🇪🇸 Spanien',away:'🇧🇪 Belgien',dl:'2026-07-10 21:00'},
+{id:'qf_03',stage:'qf',home:'🇳🇴 Norge',away:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 England',dl:'2026-07-11 23:00'},
+{id:'qf_04',stage:'qf',home:'🇦🇷 Argentina',away:'🇨🇭 Schweiz',dl:'2026-07-12 03:00'},
 {id:'sf1',stage:'sf',home:'QF V1',away:'QF V2',dl:'2026-07-14 22:00'},
 {id:'sf2',stage:'sf',home:'QF V3',away:'QF V4',dl:'2026-07-15 22:00'},
 {id:'fin',stage:'final',home:'SF V1',away:'SF V2',dl:'2026-07-19 23:00'}
@@ -566,9 +566,13 @@ function getGroupPlacementPoints(uid){
 function getFinalizedStageBonus(uid){let tot=0;for(const s of STAGES){if(stagePoints[s]&&stagePoints[s][uid])tot+=stagePoints[s][uid];}return tot;}
 function getMainLeaderboardPoints(uid){return getFinalizedStageBonus(uid)+getTournamentBonus(uid);}
 function applySharedRanking(sorted){
+  // Two players share a rank ONLY if ALL tiebreakers are equal (fully tied)
+  function fullyTied(a,b){
+    return a.pts===b.pts&&(a.outcomes||0)===(b.outcomes||0)&&(a.exact||0)===(b.exact||0)&&(a.pos1||0)===(b.pos1||0)&&(a.pos2||0)===(b.pos2||0)&&(a.pos3||0)===(b.pos3||0)&&(a.pos4||0)===(b.pos4||0);
+  }
   const result=[];let i=0;
   while(i<sorted.length){
-    let j=i;while(j<sorted.length&&sorted[j].pts===sorted[i].pts)j++;
+    let j=i;while(j<sorted.length&&fullyTied(sorted[j],sorted[i]))j++;
     const bonus=Array.from({length:j-i},(_,k)=>RANK_BONUS[i+k]||0).reduce((a,b)=>a+b,0)/(j-i);
     for(let k=i;k<j;k++)result.push({uid:sorted[k].uid,pts:sorted[k].pts,rank:i+1,bonus,outcomes:sorted[k].outcomes||0,exact:sorted[k].exact||0,pos1:sorted[k].pos1||0,pos2:sorted[k].pos2||0,pos3:sorted[k].pos3||0,pos4:sorted[k].pos4||0});
     i=j;
