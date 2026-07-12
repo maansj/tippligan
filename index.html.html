@@ -229,7 +229,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="stab-r32" onclick="setStage('r32',this)">R32</button>
   <button class="stage-tab" id="stab-r16" onclick="setStage('r16',this)">R16</button>
   <button class="stage-tab" id="stab-qf" onclick="setStage('qf',this)">Kvart</button>
-  <button class="stage-tab locked" id="stab-sf">Semi 🔒</button>
+  <button class="stage-tab" id="stab-sf" onclick="setStage('sf',this)">Semi</button>
   <button class="stage-tab locked" id="stab-final">Final 🔒</button>
 </div>
 
@@ -249,7 +249,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="tstab-r32" onclick="setTipStage('r32',this)">R32</button>
   <button class="stage-tab" id="tstab-r16" onclick="setTipStage('r16',this)">R16</button>
   <button class="stage-tab" id="tstab-qf" onclick="setTipStage('qf',this)">Kvart</button>
-  <button class="stage-tab locked" id="tstab-sf">Semi 🔒</button>
+  <button class="stage-tab" id="tstab-sf" onclick="setTipStage('sf',this)">Semi</button>
   <button class="stage-tab locked" id="tstab-final">Final 🔒</button>
 </div>
 
@@ -270,7 +270,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="stage-tab" id="astab-r32" onclick="setAdminStage('r32',this)">R32</button>
     <button class="stage-tab" id="astab-r16" onclick="setAdminStage('r16',this)">R16</button>
     <button class="stage-tab" id="astab-qf" onclick="setAdminStage('qf',this)">Kvart</button>
-    <button class="stage-tab locked" id="astab-sf">Semi 🔒</button>
+    <button class="stage-tab" id="astab-sf" onclick="setAdminStage('sf',this)">Semi</button>
     <button class="stage-tab locked" id="astab-final">Final 🔒</button>
     <button class="stage-tab" id="astab-settings" onclick="setAdminStage('settings',this)">⚙️ Inställningar</button>
   </div>
@@ -395,9 +395,9 @@ const ALL_MATCHES=[
 {id:'qf_02',stage:'qf',home:'🇪🇸 Spanien',away:'🇧🇪 Belgien',dl:'2026-07-10 21:00'},
 {id:'qf_03',stage:'qf',home:'🇳🇴 Norge',away:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 England',dl:'2026-07-11 23:00'},
 {id:'qf_04',stage:'qf',home:'🇦🇷 Argentina',away:'🇨🇭 Schweiz',dl:'2026-07-12 03:00'},
-{id:'sf1',stage:'sf',home:'QF V1',away:'QF V2',dl:'2026-07-14 22:00'},
-{id:'sf2',stage:'sf',home:'QF V3',away:'QF V4',dl:'2026-07-15 22:00'},
-{id:'fin',stage:'final',home:'SF V1',away:'SF V2',dl:'2026-07-19 23:00'}
+{id:'sf_01',stage:'sf',home:'🇫🇷 Frankrike',away:'🇪🇸 Spanien',dl:'2026-07-14 21:00'},
+{id:'sf_02',stage:'sf',home:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 England',away:'🇦🇷 Argentina',dl:'2026-07-15 21:00'},
+{id:'fin',stage:'final',home:'Vinnare SF1',away:'Vinnare SF2',dl:'2026-07-19 21:00'}
 ];
 
 // ── INIT ──
