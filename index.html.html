@@ -973,7 +973,7 @@ function openMainPlayerModal(uid){
 
   // Aggregate points per category across ALL match stages
   let outcomeP=0,homeGoalP=0,awayGoalP=0,diffP=0,scorerP=0,firstTeamP=0,underdogP=0,x2P=0,goalP=0;
-  const perCountry={}; // country -> points (WITHOUT boosters)
+  const perCountry={}; // country -> {pts, count} (WITHOUT boosters)
 
   for(const m of matches){
     if(!m.result)continue;
@@ -995,10 +995,12 @@ function openMainPlayerModal(uid){
     // Booster points (on top of base)
     if(t.booster==='x2')x2P+=matchBase;
     if(t.booster==='goal'){const[rh,ra]=(m.result||'0-0').split('-').map(Number);goalP+=(rh+ra);}
-    // Country ranking uses base only (NO boosters)
+    // Country ranking uses base only (NO boosters), tracked as avg per match
     const homeC=stripFlag(m.home), awayC=stripFlag(m.away);
-    perCountry[homeC]=(perCountry[homeC]||0)+matchBase;
-    perCountry[awayC]=(perCountry[awayC]||0)+matchBase;
+    if(!perCountry[homeC])perCountry[homeC]={pts:0,count:0};
+    if(!perCountry[awayC])perCountry[awayC]={pts:0,count:0};
+    perCountry[homeC].pts+=matchBase;perCountry[homeC].count++;
+    perCountry[awayC].pts+=matchBase;perCountry[awayC].count++;
   }
 
   const total=outcomeP+homeGoalP+awayGoalP+diffP+scorerP+firstTeamP+underdogP+x2P+goalP;
@@ -1018,23 +1020,26 @@ function openMainPlayerModal(uid){
   html+='<div style="border-top:1px solid var(--border);padding-top:6px;font-weight:600;color:var(--muted)">Totalt (inkl booster)</div><div style="font-weight:700;color:var(--accent);font-size:16px;border-top:1px solid var(--border);padding-top:6px">'+total+'p</div>';
   html+='</div>';
 
-  // Top 5 / Flop 5 countries
-  const countryArr=Object.entries(perCountry).sort((a,b)=>b[1]-a[1]);
+  // Top 5 / Flop 5 countries by AVERAGE points per match (no boosters)
+  const countryArr=Object.entries(perCountry)
+    .map(([c,d])=>[c, d.count>0?d.pts/d.count:0, d.count])
+    .sort((a,b)=>b[1]-a[1]);
   if(countryArr.length>0){
     const top5=countryArr.slice(0,5);
     const flop5=countryArr.slice(-5).reverse();
-    html+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Poäng per lag (utan boosters)</div>';
+    const fmt=v=>v.toFixed(1);
+    html+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Poängsnitt per match (utan boosters)</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
     html+='<div>';
     html+='<div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔥 Topp 5 lag</div>';
-    top5.forEach(([c,p],i)=>{
-      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)"><span style="display:inline-block;width:16px;font-size:11px">'+(i+1)+'.</span>'+c+'</span><span style="font-weight:700;color:var(--accent)">'+p+'p</span></div>';
+    top5.forEach(([c,avg,cnt],i)=>{
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)"><span style="display:inline-block;width:16px;font-size:11px">'+(i+1)+'.</span>'+c+'</span><span style="font-weight:700;color:var(--accent)">'+fmt(avg)+'p</span></div>';
     });
     html+='</div>';
     html+='<div>';
     html+='<div style="font-size:12px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">❄️ Flopp 5 lag</div>';
-    flop5.forEach(([c,p],i)=>{
-      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)"><span style="display:inline-block;width:16px;font-size:11px">'+(i+1)+'.</span>'+c+'</span><span style="font-weight:700;color:var(--red)">'+p+'p</span></div>';
+    flop5.forEach(([c,avg,cnt],i)=>{
+      html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)"><span style="display:inline-block;width:16px;font-size:11px">'+(i+1)+'.</span>'+c+'</span><span style="font-weight:700;color:var(--red)">'+fmt(avg)+'p</span></div>';
     });
     html+='</div>';
     html+='</div>';
