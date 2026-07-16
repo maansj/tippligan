@@ -230,7 +230,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="stab-r16" onclick="setStage('r16',this)">R16</button>
   <button class="stage-tab" id="stab-qf" onclick="setStage('qf',this)">Kvart</button>
   <button class="stage-tab" id="stab-sf" onclick="setStage('sf',this)">Semi</button>
-  <button class="stage-tab locked" id="stab-final">Final 🔒</button>
+  <button class="stage-tab" id="stab-final" onclick="setStage('final',this)">Final</button>
 </div>
 
 <!-- PRE SUB NAV -->
@@ -250,7 +250,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="stage-tab" id="tstab-r16" onclick="setTipStage('r16',this)">R16</button>
   <button class="stage-tab" id="tstab-qf" onclick="setTipStage('qf',this)">Kvart</button>
   <button class="stage-tab" id="tstab-sf" onclick="setTipStage('sf',this)">Semi</button>
-  <button class="stage-tab locked" id="tstab-final">Final 🔒</button>
+  <button class="stage-tab" id="tstab-final" onclick="setTipStage('final',this)">Final</button>
 </div>
 
 <div class="page active" id="page-main"><div style="margin-bottom:12px"></div><div class="section-title">Huvudtabell</div><div id="mainLbContent"></div></div>
@@ -271,7 +271,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="stage-tab" id="astab-r16" onclick="setAdminStage('r16',this)">R16</button>
     <button class="stage-tab" id="astab-qf" onclick="setAdminStage('qf',this)">Kvart</button>
     <button class="stage-tab" id="astab-sf" onclick="setAdminStage('sf',this)">Semi</button>
-    <button class="stage-tab locked" id="astab-final">Final 🔒</button>
+    <button class="stage-tab" id="astab-final" onclick="setAdminStage('final',this)">Final</button>
     <button class="stage-tab" id="astab-settings" onclick="setAdminStage('settings',this)">⚙️ Inställningar</button>
   </div>
   <div id="adminContent"></div>
@@ -397,7 +397,7 @@ const ALL_MATCHES=[
 {id:'qf_04',stage:'qf',home:'🇦🇷 Argentina',away:'🇨🇭 Schweiz',dl:'2026-07-12 03:00'},
 {id:'sf_01',stage:'sf',home:'🇫🇷 Frankrike',away:'🇪🇸 Spanien',dl:'2026-07-14 21:00'},
 {id:'sf_02',stage:'sf',home:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 England',away:'🇦🇷 Argentina',dl:'2026-07-15 21:00'},
-{id:'fin',stage:'final',home:'Vinnare SF1',away:'Vinnare SF2',dl:'2026-07-19 21:00'}
+{id:'fin',stage:'final',home:'🇪🇸 Spanien',away:'🇦🇷 Argentina',dl:'2026-07-19 21:00'}
 ];
 
 // ── INIT ──
